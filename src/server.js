@@ -5,28 +5,9 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-const { Pool } = require('pg');
 
 // Initialize express app
 const app = express();
-
-// Database connection
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-});
-
-// Test database connection
-pool.query('SELECT NOW()', (err) => {
-  if (err) {
-    console.error('Database connection error:', err.stack);
-  } else {
-    console.log('Database connected successfully');
-  }
-});
 
 // Middleware
 app.use(helmet());
