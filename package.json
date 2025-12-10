@@ -1,0 +1,45 @@
+{
+  "name": "dagangcerdas-backend",
+  "version": "1.0.0",
+  "description": "Backend API for DagangCerdas with PostgreSQL",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest"
+  },
+  "keywords": [
+    "dagangcerdas",
+    "pos",
+    "api",
+    "postgresql",
+    "express"
+  ],
+  "author": "DagangCerdas Team",
+  "license": "ISC",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.2",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "midtrans-client": "^1.4.3",
+    "morgan": "^1.10.0",
+    "pg": "^8.11.3",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}
