@@ -10,9 +10,9 @@ const sql = neon(process.env.DATABASE_URL)
 
 // Helper query agar kompatibel dengan pemanggilan pool.query(text, params)
 async function query (text, params) {
-  // gunakan unsafe supaya bisa kirim query dinamis dari controller
-  const result = await sql.unsafe(text, params)
-  return { rows: result }
+  // Eksekusi langsung dengan sql(text, params) yang mengembalikan array rows
+  const rows = await sql(text, params)
+  return { rows }
 }
 
 module.exports = {
