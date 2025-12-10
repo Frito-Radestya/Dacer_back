@@ -44,6 +44,13 @@ async function register (req, res) {
       [email, passwordHash, defaultName, 'user', true]
     )
 
+    console.log('Register insert result:', result)
+
+    if (!result || !Array.isArray(result.rows) || result.rows.length === 0) {
+      console.error('Register error: insert returned no rows', result)
+      return res.status(500).json({ message: 'Gagal membuat user baru' })
+    }
+
     const user = result.rows[0]
     const token = generateToken(user)
 
