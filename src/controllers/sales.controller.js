@@ -6,6 +6,93 @@ function generateOrderId () {
   return `ORD-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${now.getTime()}`
 }
 
+// Helper: create automatic promotion for hot-selling products
+// Rule (bisa disesuaikan): jika total qty produk dalam 7 hari terakhir >= HOT_THRESHOLD,
+// buat promosi diskon persentase otomatis untuk toko tersebut.
+async function maybeCreateAutoPromotionForHotProducts (userId, storeId, items) {
+  const HOT_THRESHOLD = 10 // minimal total qty 7 hari terakhir agar dianggap laris
+  const DISCOUNT_PERCENT = 10 // besaran diskon otomatis
+  const PROMO_DURATION_DAYS = 7 // lama promosi dalam hari
+
+  if (!userId || !storeId || !Array.isArray(items) || items.length === 0) return
+
+  for (const item of items) {
+    try {
+      const productId = String(item.id)
+      if (!productId) continue
+
+      // Hitung total qty produk ini dalam 7 hari terakhir dari kolom JSONB items
+      const qtyResult = await query(
+        `SELECT COALESCE(SUM((elem->>'qty')::int), 0) AS total_qty
+         FROM sales s,
+              jsonb_array_elements(s.items) AS elem
+         WHERE s.user_id = $1
+           AND s.store_id = $2
+           AND s.timestamp >= NOW() - INTERVAL '7 days'
+           AND s.total_items > 0
+           AND elem->>'id' = $3`,
+        [userId, storeId, productId]
+      )
+
+      const totalQty = Number(qtyResult.rows[0]?.total_qty || 0)
+      if (totalQty < HOT_THRESHOLD) continue
+
+      const productName = item.nama || 'Produk Laris'
+      const promoName = `Diskon produk laris ${productName}`
+
+      // Cek apakah sudah ada promosi aktif dengan nama yang sama
+      const existing = await query(
+        `SELECT id
+         FROM promotions
+         WHERE user_id = $1
+           AND store_id = $2
+           AND name = $3
+           AND is_active = true
+         LIMIT 1`,
+        [userId, storeId, promoName]
+      )
+
+      if (existing.rows.length > 0) {
+        continue
+      }
+
+      // Buat promosi otomatis
+      await query(
+        `INSERT INTO promotions (
+           user_id,
+           store_id,
+           name,
+           description,
+           discount_type,
+           discount_value,
+           min_order_quantity,
+           start_date,
+           end_date,
+           original_price,
+           discounted_price,
+           is_active
+         ) VALUES (
+           $1, $2, $3, $4, $5, $6, $7,
+           NOW(), NOW() + INTERVAL '${PROMO_DURATION_DAYS} days',
+           0, 0, true
+         )`,
+        [
+          userId,
+          storeId,
+          promoName,
+          `Diskon otomatis karena ${productName} laris terjual ${totalQty} item dalam 7 hari terakhir`,
+          'percentage',
+          DISCOUNT_PERCENT,
+          1
+        ]
+      )
+    } catch (autoPromoErr) {
+      console.error('[Sales] Failed to create auto promotion for hot product:', autoPromoErr)
+      // Jangan ganggu flow utama createSale
+    }
+  }
+}
+
 // POST /api/sales
 async function createSale (req, res) {
   try {
@@ -79,6 +166,13 @@ async function createSale (req, res) {
     } catch (stockErr) {
       console.error('[Sales] Failed to update stock:', stockErr)
       // Tetap lanjut, meskipun stok gagal update
+    }
+
+    // Cek dan buat promosi otomatis untuk produk yang laris
+    try {
+      await maybeCreateAutoPromotionForHotProducts(userId, storeId, items)
+    } catch (autoPromoOuterErr) {
+      console.error('[Sales] Auto-promotion wrapper error:', autoPromoOuterErr)
     }
 
     res.status(201).json({
