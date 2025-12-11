@@ -10,8 +10,8 @@ const sql = neon(process.env.DATABASE_URL)
 
 // Helper query agar kompatibel dengan pemanggilan pool.query(text, params)
 async function query (text, params) {
-  // Eksekusi langsung dengan sql(text, params) yang mengembalikan array rows
-  const rows = await sql(text, params)
+  // Eksekusi langsung dengan sql.query(text, params) yang mengembalikan array rows
+  const rows = await sql.query(text, params)
   return { rows }
 }
 

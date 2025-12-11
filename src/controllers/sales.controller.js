@@ -103,7 +103,10 @@ async function getSalesSummary (req, res) {
 
     // Ambil sales 30 hari terakhir untuk user (dan store kalau ada) lalu agregasi di Node
     const params = [userId]
-    let where = 'user_id = $1 AND timestamp >= CURRENT_DATE - INTERVAL \'30 days\''
+    // Hanya ambil transaksi yang benar-benar memiliki item (total_items > 0)
+    // agar entri placeholder dari proses checkout QRIS (total_items = 0, items = [])
+    // tidak muncul sebagai transaksi duplikat di statistik/frontend
+    let where = 'user_id = $1 AND timestamp >= CURRENT_DATE - INTERVAL \'30 days\' AND total_items > 0'
 
     if (storeId) {
       params.push(storeId)
